@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akıllı Otopark - Tek Katlı Plan</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>Akıllı Otopark Takip Paneli</h1>
+  <p class="subtitle">Canlı veri, tek katlı (10 alan) plan ve akıllı yönlendirme</p>
+      </div>
+      <div class="status-badges">
+        <span class="badge" id="totalBadge">Toplam Alan: 0</span>
+        <span class="badge badge-success" id="freeBadge">Boş Alan: 0</span>
+        <span class="badge badge-danger" id="occupiedBadge">Dolu Alan: 0</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="section section-floor">
+        <div class="section-heading">
+          <h2>Kat Planı</h2>
+          <div id="floorTabs" class="tab-bar"></div>
+        </div>
+        <div id="floorPanels" class="floor-panels"></div>
+      </section>
+      <section class="section section-side">
+        <h2>Önerilen Park Alanı</h2>
+        <div id="recommended" class="recommendation">
+          <p>Boş alan aranıyor...</p>
+        </div>
+  <h2>Kat Özeti</h2>
+        <div id="floorSummary" class="floor-summary"></div>
+        <h2>Diagnostik Kayıtları</h2>
+        <div class="log-console" id="logConsole">
+          <div class="log-placeholder">Henüz kayıt yok. Yenileme ile loglar burada görünecek.</div>
+        </div>
+        <div class="log-actions">
+          <button id="clearLogButton" type="button">Logları Temizle</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Aktif kat: <span id="activeFloorLabel">-</span></p>
+      <div class="footer-actions">
+        <button id="refreshButton" type="button">Verileri Yenile</button>
+  <button id="autoToggleButton" type="button" class="secondary">Canlı Takibi Aç</button>
+      </div>
+      <span class="badge badge-secondary" id="updatedBadge">Son Güncelleme: --</span>
+    </footer>
+
+    <script>
+      (function () {
+        const floorsConfig = [
+          { id: "F1", label: "Zemin Kat", svg: "assets/parking-10.svg" }
+        ];
+
+        const totalBadge = document.getElementById("totalBadge");
+        const freeBadge = document.getElementById("freeBadge");
+        const occupiedBadge = document.getElementById("occupiedBadge");
+        const updatedBadge = document.getElementById("updatedBadge");
+        const floorTabs = document.getElementById("floorTabs");
+        const floorPanels = document.getElementById("floorPanels");
+        const floorSummary = document.getElementById("floorSummary");
+        const recommendedElement = document.getElementById("recommended");
+        const logConsole = document.getElementById("logConsole");
+        const clearLogButton = document.getElementById("clearLogButton");
+        const refreshButton = document.getElementById("refreshButton");
+        const autoToggleButton = document.getElementById("autoToggleButton");
+        const activeFloorLabel = document.getElementById("activeFloorLabel");
+
+        const floorViews = new Map();
+        let activeFloorId = floorsConfig[0]?.id ?? "F1";
+        let autoTimer = null;
+        let autoRefreshEnabled = false;
+
+        const NGROK_BASE = "https://kenyetta-microdont-kathey.ngrok-free.dev";
+
+        function resolveLocalApiBase() {
+          const { protocol, hostname, port } = window.location;
+          if (hostname.endsWith(".app.github.dev")) {
+            const match = hostname.match(/^(.*)-(\d+)\.app\.github\.dev$/);
+            if (match) {
+              const prefix = match[1];
+              return `${protocol}//${prefix}-8080.app.github.dev`;
+            }
+          }
+          if (port && port !== "80" && port !== "443") {
+            return `${protocol}//${hostname}:8080`;
+          }
+          return `${protocol}//${hostname}:8080`;
+        }
+
+        const API_BASE_CANDIDATES = [NGROK_BASE];
+
+        function appendLog(message, level = "info") {
+          const timestamp = new Date().toLocaleTimeString("tr-TR", { hour12: false });
+          const entry = document.createElement("div");
+          entry.className = `log-entry ${level}`;
+          entry.textContent = `[${timestamp}] ${message}`;
+          const placeholder = logConsole.querySelector(".log-placeholder");
+          if (placeholder) {
+            placeholder.remove();
+          }
+          logConsole.insertBefore(entry, logConsole.firstChild);
+          while (logConsole.childElementCount > 120) {
+            logConsole.removeChild(logConsole.lastChild);
+          }
+        }
+
+        function clearLog() {
+          logConsole.innerHTML = '<div class="log-placeholder">Log temizlendi.</div>';
+        }
+
+        clearLogButton.addEventListener("click", clearLog);
+
+        function buildUi() {
+          floorsConfig.forEach((floor, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "tab-button" + (index === 0 ? " active" : "");
+            button.dataset.floor = floor.id;
+            button.textContent = floor.label;
+            button.addEventListener("click", () => setActiveFloor(floor.id));
+            floorTabs.appendChild(button);
+
+            const panel = document.createElement("div");
+            panel.className = "floor-canvas" + (index === 0 ? " active" : "");
+            panel.dataset.floor = floor.id;
+            const objectEl = document.createElement("object");
+            objectEl.className = "floor-svg";
+            objectEl.id = `svg-${floor.id}`;
+            objectEl.type = "image/svg+xml";
+            objectEl.data = floor.svg;
+            objectEl.setAttribute("aria-label", `${floor.label} otopark planı`);
+            panel.appendChild(objectEl);
+            floorPanels.appendChild(panel);
+
+            const record = { button, panel, objectEl, doc: null, pendingState: null };
+            floorViews.set(floor.id, record);
+
+            objectEl.addEventListener("load", () => {
+              record.doc = objectEl.contentDocument;
+              appendLog(`${floor.label} kat planı yüklendi`);
+              if (record.pendingState) {
+                applyFloorState(floor.id, record.pendingState);
+                record.pendingState = null;
+              }
+            });
+
+            objectEl.addEventListener("error", () => {
+              appendLog(`${floor.label} kat planı yüklenemedi`, "error");
+            });
+          });
+          setActiveFloor(activeFloorId);
+        }
+
+        function clearAutoTimer() {
+          if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+          }
+        }
+
+        function startAutoRefresh(initial = false) {
+          clearAutoTimer();
+          autoRefreshEnabled = true;
+          autoTimer = setInterval(fetchState, 5000);
+          autoToggleButton.textContent = "Canlı Takibi Kapat";
+          autoToggleButton.classList.remove("secondary");
+          if (!initial) {
+            appendLog("Canlı takip başlatıldı");
+          }
+        }
+
+        function stopAutoRefresh(log = true) {
+          clearAutoTimer();
+          autoRefreshEnabled = false;
+          autoToggleButton.textContent = "Canlı Takibi Aç";
+          autoToggleButton.classList.add("secondary");
+          if (log) {
+            appendLog("Canlı takip kapatıldı");
+          }
+        }
+
+        autoToggleButton.addEventListener("click", () => {
+          if (autoRefreshEnabled) {
+            stopAutoRefresh();
+          } else {
+            startAutoRefresh();
+            fetchState(true);
+          }
+        });
+
+        refreshButton.addEventListener("click", () => fetchState(true));
+
+        function setActiveFloor(floorId) {
+          activeFloorId = floorId;
+          const floorLabel = floorsConfig.find((f) => f.id === floorId)?.label ?? floorId;
+          activeFloorLabel.textContent = floorLabel;
+          floorViews.forEach((view, id) => {
+            view.button.classList.toggle("active", id === floorId);
+            view.panel.classList.toggle("active", id === floorId);
+          });
+          Array.from(floorSummary.querySelectorAll(".floor-summary-card")).forEach((card) => {
+            card.classList.toggle("active", card.dataset.floor === floorId);
+          });
+        }
+
+        function formatTimestamp(value) {
+          if (!value) {
+            return "--";
+          }
+          const parsed = new Date(value);
+          if (Number.isNaN(parsed.getTime())) {
+            return value;
+          }
+          return parsed.toLocaleString("tr-TR", { hour12: false });
+        }
+
+        function applyFloorState(floorId, floorState) {
+          const view = floorViews.get(floorId);
+          if (!view) {
+            return;
+          }
+          if (!view.doc) {
+            view.pendingState = floorState;
+            return;
+          }
+
+          const svgDoc = view.doc;
+          const allSpots = svgDoc.querySelectorAll(".parking-spot-svg");
+          allSpots.forEach((spot) => {
+            spot.classList.remove("occupied", "available", "highlight");
+          });
+
+          floorState.spots.forEach((spot) => {
+            const el = svgDoc.getElementById(spot.id);
+            if (!el) {
+              return;
+            }
+            el.classList.add(spot.occupied ? "occupied" : "available");
+          });
+
+          const nearest = floorState.nearestAvailable;
+          if (nearest) {
+            const el = svgDoc.getElementById(nearest.id);
+            if (el) {
+              el.classList.add("highlight");
+            }
+          }
+        }
+
+        function updateFloorSummary(floorStates) {
+          floorSummary.innerHTML = "";
+          if (!Array.isArray(floorStates) || floorStates.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "muted";
+            empty.textContent = "Veri alınamadı.";
+            floorSummary.appendChild(empty);
+            return;
+          }
+
+          floorStates.forEach((floor) => {
+            const stats = floor.stats || {};
+            const free = stats.free ?? 0;
+            const occupied = stats.occupied ?? 0;
+            const total = stats.total ?? free + occupied;
+            const rateValue = typeof stats.occupancyRate === "number"
+              ? stats.occupancyRate
+              : Number(stats.occupancyRate || 0);
+            const rate = Number.isFinite(rateValue) ? Math.max(0, Math.min(100, rateValue)) : 0;
+
+            const card = document.createElement("button");
+            card.type = "button";
+            card.className = "floor-summary-card";
+            card.dataset.floor = floor.id;
+            if (floor.id === activeFloorId) {
+              card.classList.add("active");
+            }
+
+            card.innerHTML = `
+              <div class="floor-summary-header">
+                <span class="floor-summary-label">${floor.label}</span>
+                <span class="floor-summary-count">${total} alan</span>
+              </div>
+              <div class="summary-progress" role="presentation">
+                <div class="summary-progress-bar" style="width: ${rate.toFixed(1)}%"></div>
+              </div>
+              <div class="floor-summary-meta">
+                <span class="chip chip-free">${free} boş</span>
+                <span class="chip chip-occ">${occupied} dolu</span>
+                <span class="chip chip-rate">${rate.toFixed(1)}% doluluk</span>
+              </div>
+            `;
+
+            card.addEventListener("click", () => setActiveFloor(floor.id));
+            floorSummary.appendChild(card);
+          });
+        }
+
+        function updateRecommendation(recommendation) {
+          recommendedElement.classList.remove("highlight");
+          recommendedElement.innerHTML = "<p>Boş alan aranıyor...</p>";
+
+          if (!recommendation) {
+            return;
+          }
+
+          const floorLabel = floorsConfig.find((f) => f.id === recommendation.floorId)?.label ?? recommendation.floorId;
+          const distanceText = typeof recommendation.distance === "number"
+            ? `Tahmini mesafe: ${recommendation.distance.toFixed(1)} m`
+            : "Mesafe bilgisi yok";
+
+          recommendedElement.innerHTML = `
+            <h3>${recommendation.label}</h3>
+            <p>${floorLabel} • ${distanceText}</p>
+            <button type="button" class="recommend-button">Bu Kata Odaklan</button>
+          `;
+          recommendedElement.classList.add("highlight");
+
+          const actionButton = recommendedElement.querySelector("button");
+          actionButton.addEventListener("click", () => {
+            setActiveFloor(recommendation.floorId);
+            const view = floorViews.get(recommendation.floorId);
+            if (view?.panel) {
+              view.panel.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          });
+        }
+
+        function applyState(data) {
+          const overall = data.overall || {};
+          totalBadge.textContent = `Toplam Alan: ${overall.total ?? 0}`;
+          freeBadge.textContent = `Boş Alan: ${overall.free ?? 0}`;
+          occupiedBadge.textContent = `Dolu Alan: ${overall.occupied ?? 0}`;
+          updatedBadge.textContent = `Son Güncelleme: ${formatTimestamp(data.timestamp)}`;
+
+          const floorStates = data.floors || [];
+          floorStates.forEach((floor) => {
+            applyFloorState(floor.id, floor);
+          });
+
+          updateFloorSummary(floorStates);
+          updateRecommendation(data.recommendation);
+        }
+
+        async function fetchState(manual = false) {
+          let lastError = null;
+          for (const base of API_BASE_CANDIDATES) {
+            const apiUrl = `${base}/state`;
+            appendLog(`Veri isteği gönderiliyor: ${apiUrl}`);
+            try {
+              const response = await fetch(apiUrl, {
+                cache: "no-store",
+                headers: { "ngrok-skip-browser-warning": "true" }
+              });
+              if (!response.ok) {
+                throw new Error(`Sunucu hatası: ${response.status} ${response.statusText}`);
+              }
+              appendLog(`Yanıt alındı: ${response.status} ${response.statusText}`);
+              const rawText = await response.text();
+              let data;
+              try {
+                data = JSON.parse(rawText);
+              } catch (parseError) {
+                appendLog("JSON parse hatası", "error");
+                console.error(`JSON parse hatası (base=${base}). Gövde:`, rawText);
+                throw parseError;
+              }
+              appendLog(`JSON parse başarılı. Kat sayısı: ${data.floors?.length ?? 0}`);
+              applyState(data);
+              if (manual) {
+                appendLog("Manuel yenileme tamamlandı");
+              }
+              return;
+            } catch (error) {
+              lastError = error;
+              const message = error instanceof Error ? error.message : String(error);
+              appendLog(`Kaynak ${base} hata: ${message}`, "error");
+              console.error(`fetchState hatası (base=${base})`, error);
+            }
+          }
+
+          recommendedElement.innerHTML = "<p>Sunucuya ulaşılamıyor.</p>";
+          recommendedElement.classList.remove("highlight");
+          if (manual && lastError) {
+            appendLog("Manuel yenileme başarısız", "error");
+          }
+        }
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            clearAutoTimer();
+          } else if (autoRefreshEnabled) {
+            startAutoRefresh();
+            fetchState();
+          }
+        });
+
+        buildUi();
+        startAutoRefresh(true);
+        fetchState();
+      })();
+    </script>
+  </body>
+</html>

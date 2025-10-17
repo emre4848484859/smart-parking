@@ -1,0 +1,85 @@
+<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .parking-spot-svg {
+      cursor: pointer;
+    }
+
+    .parking-spot-svg rect {
+      stroke: #ffffff;
+      stroke-width: 1.5;
+      transition: fill 0.3s ease;
+      rx: 6;
+      ry: 6;
+    }
+
+    .parking-spot-svg text {
+      fill: #ffffff;
+      font-family: "Arial", sans-serif;
+      font-size: 18px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      user-select: none;
+    }
+
+    .parking-spot-svg.available rect {
+      fill: #2a9d8f;
+    }
+
+    .parking-spot-svg.occupied rect {
+      fill: #e76f51;
+    }
+
+    .parking-spot-svg.highlight rect {
+      animation: highlight-spot 1s infinite alternate;
+    }
+
+    @keyframes highlight-spot {
+      from { fill: #f4a261; }
+      to   { fill: #e9c46a; }
+    }
+  </style>
+
+  <rect x="0" y="0" width="400" height="220" fill="#264653" rx="12" ry="12" />
+
+  <g id="F1-A1" class="parking-spot-svg available" data-spot-id="F1-A1">
+    <rect x="20" y="20" width="60" height="70" />
+    <text x="50" y="55">A1</text>
+  </g>
+  <g id="F1-A2" class="parking-spot-svg available" data-spot-id="F1-A2">
+    <rect x="100" y="20" width="60" height="70" />
+    <text x="130" y="55">A2</text>
+  </g>
+  <g id="F1-A3" class="parking-spot-svg available" data-spot-id="F1-A3">
+    <rect x="180" y="20" width="60" height="70" />
+    <text x="210" y="55">A3</text>
+  </g>
+  <g id="F1-A4" class="parking-spot-svg available" data-spot-id="F1-A4">
+    <rect x="260" y="20" width="60" height="70" />
+    <text x="290" y="55">A4</text>
+  </g>
+  <g id="F1-A5" class="parking-spot-svg available" data-spot-id="F1-A5">
+    <rect x="340" y="20" width="60" height="70" />
+    <text x="370" y="55">A5</text>
+  </g>
+
+  <g id="F1-A6" class="parking-spot-svg available" data-spot-id="F1-A6">
+    <rect x="20" y="120" width="60" height="70" />
+    <text x="50" y="155">A6</text>
+  </g>
+  <g id="F1-A7" class="parking-spot-svg available" data-spot-id="F1-A7">
+    <rect x="100" y="120" width="60" height="70" />
+    <text x="130" y="155">A7</text>
+  </g>
+  <g id="F1-A8" class="parking-spot-svg available" data-spot-id="F1-A8">
+    <rect x="180" y="120" width="60" height="70" />
+    <text x="210" y="155">A8</text>
+  </g>
+  <g id="F1-A9" class="parking-spot-svg available" data-spot-id="F1-A9">
+    <rect x="260" y="120" width="60" height="70" />
+    <text x="290" y="155">A9</text>
+  </g>
+  <g id="F1-A10" class="parking-spot-svg available" data-spot-id="F1-A10">
+    <rect x="340" y="120" width="60" height="70" />
+    <text x="370" y="155">A10</text>
+  </g>
+</svg>

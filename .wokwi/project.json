@@ -1,0 +1,7 @@
+{
+  "name": "smart-parking-floor1",
+  "version": "1.0.0",
+  "author": "smart-parking",
+  "description": "ESP32 ile kat 1'deki 10 park alanını simüle eden Wokwi projesi",
+  "public": false
+}

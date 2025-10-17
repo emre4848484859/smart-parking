@@ -1,0 +1,141 @@
+<!-- 
+  Bu SVG dosyası, otoparkın kat planını görsel olarak temsil eder.
+  - `viewBox` özelliği, SVG'nin container'a sığacak şekilde ölçeklenmesini sağlar.
+  - Her bir park yeri, bir grup (`<g>`) elementi içinde tanımlanmıştır.
+  - Her grup, bir dikdörtgen (`<rect>`) ve bir metin (`<text>`) içerir.
+  - JavaScript ile etkileşim için her grubun bir `id`'si ve `data-spot-id` özelliği bulunur.
+  - CSS sınıfları (`.parking-spot-svg`, `.available`, `.occupied`) stil ve durum yönetimi için kullanılır.
+-->
+<svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg">
+  <!-- 
+    SVG içine gömülmüş CSS stilleri.
+    Bu stiller, park yerlerinin (boş, dolu, vurgulu) nasıl görüneceğini belirler.
+    `!important` kullanımı, harici CSS dosyalarındaki stilleri ezmek için gerekebilir,
+    ancak genellikle kaçınılması gereken bir pratiktir. Burada dinamik sınıf değişimlerinde
+    istenilen stilin kesin olarak uygulanması için kullanılmıştır.
+  -->
+  <style>
+    /* Park yeri gruplarına tıklanabilir imleç ver */
+    .parking-spot-svg {
+        cursor: pointer;
+    }
+    
+    /* Park yerlerinin genel stilleri (dikdörtgenler için) */
+    .parking-spot-svg rect {
+        stroke: #ffffff; /* Kenarlık rengi */
+        stroke-width: 1.5; /* Kenarlık kalınlığı */
+        transition: fill 0.3s ease; /* Renk değişimlerinde yumuşak geçiş */
+    }
+
+    /* Park yerlerinin içindeki numaraların (metin) stili */
+    .parking-spot-svg text {
+        fill: #ffffff; /* Metin rengi */
+        stroke: none; /* Metin kenarlığı olmasın */
+        user-select: none; /* Kullanıcının metni seçmesini engelle */
+    }
+
+    /* BOŞ park yeri rengi */
+    .parking-spot-svg.available rect {
+        fill: #2a9d8f; /* Yeşil tonu */
+    }
+
+    /* DOLU park yeri rengi */
+    .parking-spot-svg.occupied rect {
+        fill: #e76f51; /* Kırmızı/Turuncu tonu */
+    }
+
+    /* YÖNLENDİRİLEN (en yakın) park yeri için vurgu animasyonu */
+    .parking-spot-svg.highlight rect {
+        animation: highlight-svg-spot 1s infinite alternate; /* Animasyonu uygula */
+    }
+
+    /* Vurgu animasyonunun tanımı (yanıp sönme efekti) */
+    @keyframes highlight-svg-spot {
+        from {
+            fill: #f4a261; /* Animasyon başlangıç rengi */
+        }
+        to {
+            fill: #e9c46a; /* Animasyon bitiş rengi */
+        }
+    }
+  </style>
+
+  <!-- OTOPARK YERLERİ -->
+  <!-- Her bir <g> (grup) elementi bir park yerini temsil eder. -->
+  <!-- id ve data-spot-id: JavaScript tarafından bu park yerini tanımak için kullanılır. -->
+  <!-- class: Park yerinin mevcut durumunu (available/boş, occupied/dolu) belirtir. -->
+  
+  <!-- A Sırası -->
+  <g id="F1-A1" class="parking-spot-svg available" data-spot-id="F1-A1"><rect x="20" y="20" width="70" height="45" /><text x="55" y="44.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">1</text></g>
+  <g id="F1-A2" class="parking-spot-svg available" data-spot-id="F1-A2-"><rect x="20" y="75" width="70" height="45" /><text x="55" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">2</text></g>
+  <g id="F1-A3" class="parking-spot-svg available" data-spot-id="F1-A3"><rect x="20" y="130" width="70" height="45" /><text x="55" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">3</text></g>
+  <g id="F1-A4" class="parking-spot-svg available" data-spot-id="F1-A4"><rect x="20" y="185" width="70" height="45" /><text x="55" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">4</text></g>
+  <g id="F1-A5" class="parking-spot-svg available" data-spot-id="F1-A5"><rect x="20" y="240" width="70" height="45" /><text x="55" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">5</text></g>
+  <g id="F1-A6" class="parking-spot-svg available" data-spot-id="F1-A6"><rect x="20" y="295" width="70" height="45" /><text x="55" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">6</text></g>
+  <g id="F1-A7" class="parking-spot-svg available" data-spot-id="F1-A7"><rect x="20" y="350" width="70" height="45" /><text x="55" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">7</text></g>
+  <g id="F1-A8" class="parking-spot-svg available" data-spot-id="F1-A8"><rect x="20" y="405" width="70" height="45" /><text x="55" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">8</text></g>
+  <g id="F1-A9" class="parking-spot-svg available" data-spot-id="F1-A9"><rect x="20" y="460" width="70" height="45" /><text x="55" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">9</text></g>
+  
+  <!-- B Sırası -->
+  <g id="F1-B1" class="parking-spot-svg available" data-spot-id="F1-B1"><rect x="130" y="75" width="70" height="45" /><text x="165" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">10</text></g>
+  <g id="F1-B2" class="parking-spot-svg available" data-spot-id="F1-B2"><rect x="130" y="130" width="70" height="45" /><text x="165" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">11</text></g>
+  <g id="F1-B3" class="parking-spot-svg available" data-spot-id="F1-B3"><rect x="130" y="185" width="70" height="45" /><text x="165" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">12</text></g>
+  <g id="F1-B4" class="parking-spot-svg available" data-spot-id="F1-B4"><rect x="130" y="240" width="70" height="45" /><text x="165" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">13</text></g>
+  <g id="F1-B5" class="parking-spot-svg available" data-spot-id="F1-B5"><rect x="130" y="295" width="70" height="45" /><text x="165" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">14</text></g>
+  <g id="F1-B6" class="parking-spot-svg available" data-spot-id="F1-B6"><rect x="130" y="350" width="70" height="45" /><text x="165" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">15</text></g>
+  <g id="F1-B7" class="parking-spot-svg available" data-spot-id="F1-B7"><rect x="130" y="405" width="70" height="45" /><text x="165" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">16</text></g>
+  <g id="F1-B8" class="parking-spot-svg available" data-spot-id="F1-B8"><rect x="130" y="460" width="70" height="45" /><text x="165" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">17</text></g>
+  
+  <!-- C Sırası -->
+  <g id="F1-C1" class="parking-spot-svg available" data-spot-id="F1-C1"><rect x="240" y="75" width="70" height="45" /><text x="275" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">18</text></g>
+  <g id="F1-C2" class="parking-spot-svg available" data-spot-id="F1-C2"><rect x="240" y="130" width="70" height="45" /><text x="275" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">19</text></g>
+  <g id="F1-C3" class="parking-spot-svg available" data-spot-id="F1-C3"><rect x="240" y="185" width="70" height="45" /><text x="275" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">20</text></g>
+  <g id="F1-C4" class="parking-spot-svg available" data-spot-id="F1-C4"><rect x="240" y="240" width="70" height="45" /><text x="275" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">21</text></g>
+  <g id="F1-C5" class="parking-spot-svg available" data-spot-id="F1-C5"><rect x="240" y="295" width="70" height="45" /><text x="275" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">22</text></g>
+  <g id="F1-C6" class="parking-spot-svg available" data-spot-id="F1-C6"><rect x="240" y="350" width="70" height="45" /><text x="275" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">23</text></g>
+  <g id="F1-C7" class="parking-spot-svg available" data-spot-id="F1-C7"><rect x="240" y="405" width="70" height="45" /><text x="275" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">24</text></g>
+  <g id="F1-C8" class="parking-spot-svg available" data-spot-id="F1-C8"><rect x="240" y="460" width="70" height="45" /><text x="275" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">25</text></g>
+  
+  <!-- D Sırası -->
+  <g id="F1-D1" class="parking-spot-svg available" data-spot-id="F1-D1"><rect x="350" y="75" width="70" height="45" /><text x="385" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">26</text></g>
+  <g id="F1-D2" class="parking-spot-svg available" data-spot-id="F1-D2"><rect x="350" y="130" width="70" height="45" /><text x="385" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">27</text></g>
+  <g id="F1-D3" class="parking-spot-svg available" data-spot-id="F1-D3"><rect x="350" y="185" width="70" height="45" /><text x="385" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">28</text></g>
+  <g id="F1-D4" class="parking-spot-svg available" data-spot-id="F1-D4"><rect x="350" y="240" width="70" height="45" /><text x="385" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">29</text></g>
+  <g id="F1-D5" class="parking-spot-svg available" data-spot-id="F1-D5"><rect x="350" y="295" width="70" height="45" /><text x="385" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">30</text></g>
+  <g id="F1-D6" class="parking-spot-svg available" data-spot-id="F1-D6"><rect x="350" y="350" width="70" height="45" /><text x="385" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">31</text></g>
+  <g id="F1-D7" class="parking-spot-svg available" data-spot-id="F1-D7"><rect x="350" y="405" width="70" height="45" /><text x="385" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">32</text></g>
+  <g id="F1-D8" class="parking-spot-svg available" data-spot-id="F1-D8"><rect x="350" y="460" width="70" height="45" /><text x="385" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">33</text></g>
+  
+  <!-- E Sırası -->
+  <g id="F1-E1" class="parking-spot-svg available" data-spot-id="F1-E1"><rect x="460" y="20" width="70" height="45" /><text x="495" y="44.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">34</text></g>
+  <g id="F1-E2" class="parking-spot-svg available" data-spot-id="F1-E2"><rect x="460" y="75" width="70" height="45" /><text x="495" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">35</text></g>
+  <g id="F1-E3" class="parking-spot-svg available" data-spot-id="F1-E3"><rect x="460" y="130" width="70" height="45" /><text x="495" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">36</text></g>
+  <g id="F1-E4" class="parking-spot-svg available" data-spot-id="F1-E4"><rect x="460" y="185" width="70" height="45" /><text x="495" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">37</text></g>
+  <g id="F1-E5" class="parking-spot-svg available" data-spot-id="F1-E5"><rect x="460" y="240" width="70" height="45" /><text x="495" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">38</text></g>
+  <g id="F1-E6" class="parking-spot-svg available" data-spot-id="F1-E6"><rect x="460" y="295" width="70" height="45" /><text x="495" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">39</text></g>
+  <g id="F1-E7" class="parking-spot-svg available" data-spot-id="F1-E7"><rect x="460" y="350" width="70" height="45" /><text x="495" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">40</text></g>
+  <g id="F1-E8" class="parking-spot-svg available" data-spot-id="F1-E8"><rect x="460" y="405" width="70" height="45" /><text x="495" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">41</text></g>
+  <g id="F1-E9" class="parking-spot-svg available" data-spot-id="F1-E9"><rect x="460" y="460" width="70" height="45" /><text x="495" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">42</text></g>
+
+  <!-- F Sırası -->
+  <g id="F1-F1" class="parking-spot-svg available" data-spot-id="F1-F1"><rect x="570" y="75" width="70" height="45" /><text x="605" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">43</text></g>
+  <g id="F1-F2" class="parking-spot-svg available" data-spot-id="F1-F2"><rect x="570" y="130" width="70" height="45" /><text x="605" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">44</text></g>
+  <g id="F1-F3" class="parking-spot-svg available" data-spot-id="F1-F3"><rect x="570" y="185" width="70" height="45" /><text x="605" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">45</text></g>
+  <g id="F1-F4" class="parking-spot-svg available" data-spot-id="F1-F4"><rect x="570" y="240" width="70" height="45" /><text x="605" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">46</text></g>
+  <g id="F1-F5" class="parking-spot-svg available" data-spot-id="F1-F5"><rect x="570" y="295" width="70" height="45" /><text x="605" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">47</text></g>
+  <g id="F1-F6" class="parking-spot-svg available" data-spot-id="F1-F6"><rect x="570" y="350" width="70" height="45" /><text x="605" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">48</text></g>
+  <g id="F1-F7" class="parking-spot-svg available" data-spot-id="F1-F7"><rect x="570" y="405" width="70" height="45" /><text x="605" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">49</text></g>
+  <g id="F1-F8" class="parking-spot-svg available" data-spot-id="F1-F8"><rect x="570" y="460" width="70" height="45" /><text x="605" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">50</text></g>
+
+  <!-- G Sırası -->
+  <g id="F1-G1" class="parking-spot-svg available" data-spot-id="F1-G1"><rect x="680" y="20" width="70" height="45" /><text x="715" y="44.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">51</text></g>
+  <g id="F1-G2" class="parking-spot-svg available" data-spot-id="F1-G2"><rect x="680" y="75" width="70" height="45" /><text x="715" y="99.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">52</text></g>
+  <g id="F1-G3" class="parking-spot-svg available" data-spot-id="F1-G3"><rect x="680" y="130" width="70" height="45" /><text x="715" y="154.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">53</text></g>
+  <g id="F1-G4" class="parking-spot-svg available" data-spot-id="F1-G4"><rect x="680" y="185" width="70" height="45" /><text x="715" y="209.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">54</text></g>
+  <g id="F1-G5" class="parking-spot-svg available" data-spot-id="F1-G5"><rect x="680" y="240" width="70" height="45" /><text x="715" y="264.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">55</text></g>
+  <g id="F1-G6" class="parking-spot-svg available" data-spot-id="F1-G6"><rect x="680" y="295" width="70" height="45" /><text x="715" y="319.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">56</text></g>
+  <g id="F1-G7" class="parking-spot-svg available" data-spot-id="F1-G7"><rect x="680" y="350" width="70" height="45" /><text x="715" y="374.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">57</text></g>
+  <g id="F1-G8" class="parking-spot-svg available" data-spot-id="F1-G8"><rect x="680" y="405" width="70" height="45" /><text x="715" y="429.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">58</text></g>
+  <g id="F1-G9" class="parking-spot-svg available" data-spot-id="F1-G9"><rect x="680" y="460" width="70" height="45" /><text x="715" y="484.5" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" dominant-baseline="middle">59</text></g>
+
+</svg>

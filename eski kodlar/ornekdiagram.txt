@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "author": "Kodlama Destegi",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp" },
+    { "type": "wokwi-hc-sr04", "id": "sr04-1", "top": -150, "left": -100 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-2", "top": -150, "left": 0 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-3", "top": -150, "left": 100 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-4", "top": -150, "left": 200 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-5", "top": 0, "left": -100 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-6", "top": 0, "left": 0 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-7", "top": 0, "left": 100 },
+    { "type": "wokwi-hc-sr04", "id": "sr04-8", "top": 0, "left": 200 },
+    { "type": "wokwi-74hc595", "id": "shift1", "top": -80, "left": -250 },
+    { "type": "wokwi-cd74hc4067", "id": "mux1", "top": 80, "left": -250 }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+
+    [ "shift1:SER", "esp:23", "green", [ "v0" ] ],
+    [ "shift1:SRCLK", "esp:19", "green", [ "v0" ] ],
+    [ "shift1:RCLK", "esp:18", "green", [ "v0" ] ],
+    [ "shift1:GND", "esp:GND", "black", [ "v0" ] ],
+    [ "shift1:VCC", "esp:5V", "red", [ "v0" ] ],
+
+    [ "mux1:SIG", "esp:34", "blue", [ "v0" ] ],
+    [ "mux1:S0", "esp:15", "orange", [ "v0" ] ],
+    [ "mux1:S1", "esp:2", "orange", [ "v0" ] ],
+    [ "mux1:S2", "esp:4", "orange", [ "v0" ] ],
+    [ "mux1:S3", "esp:16", "orange", [ "v0" ] ],
+    [ "mux1:GND", "esp:GND", "black", [ "v0" ] ],
+    [ "mux1:VCC", "esp:5V", "red", [ "v0" ] ],
+
+    [ "sr04-1:TRIG", "shift1:Q0", "green", [ "v0" ] ],
+    [ "sr04-2:TRIG", "shift1:Q1", "green", [ "v0" ] ],
+    [ "sr04-3:TRIG", "shift1:Q2", "green", [ "v0" ] ],
+    [ "sr04-4:TRIG", "shift1:Q3", "green", [ "v0" ] ],
+    [ "sr04-5:TRIG", "shift1:Q4", "green", [ "v0" ] ],
+    [ "sr04-6:TRIG", "shift1:Q5", "green", [ "v0" ] ],
+    [ "sr04-7:TRIG", "shift1:Q6", "green", [ "v0" ] ],
+    [ "sr04-8:TRIG", "shift1:Q7", "green", [ "v0" ] ],
+
+    [ "sr04-1:ECHO", "mux1:C0", "blue", [ "v0" ] ],
+    [ "sr04-2:ECHO", "mux1:C1", "blue", [ "v0" ] ],
+    [ "sr04-3:ECHO", "mux1:C2", "blue", [ "v0" ] ],
+    [ "sr04-4:ECHO", "mux1:C3", "blue", [ "v0" ] ],
+    [ "sr04-5:ECHO", "mux1:C4", "blue", [ "v0" ] ],
+    [ "sr04-6:ECHO", "mux1:C5", "blue", [ "v0" ] ],
+    [ "sr04-7:ECHO", "mux1:C6", "blue", [ "v0" ] ],
+    [ "sr04-8:ECHO", "mux1:C7", "blue", [ "v0" ] ],
+   
+    [ "sr04-1:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-1:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-2:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-2:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-3:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-3:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-4:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-4:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-5:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-5:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-6:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-6:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-7:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-7:GND", "esp:GND", "black", ["v0"] ],
+    [ "sr04-8:VCC", "esp:5V", "red", ["v0"] ], [ "sr04-8:GND", "esp:GND", "black", ["v0"] ]
+  ]
+}

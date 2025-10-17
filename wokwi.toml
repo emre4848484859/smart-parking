@@ -1,0 +1,3 @@
+[wokwi]
+diagram = "diagram.json"
+firmware = "main.ino"
