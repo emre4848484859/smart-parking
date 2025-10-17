@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Çok katlı akıllı otopark simülasyon servisi.
+"""tek katlı akıllı otopark simülasyon servisi.
 
-ESP32 tabanlı sensörlerden gelecek veriyi taklit ederek REST API
-üretir. SVG kat planlarından park alanlarını otomatik çıkarır,
-kat başına en yakın boş yeri hesaplar ve ön uç arayüzünün ihtiyaç
-duyduğu toplu özet verilerini sunar.
+esp32 tabanlı sensörlerden gelecek veriyi taklit ederek rest api üretir.
+svg kat planlarından park alanlarını otomatik çıkarır, kat başına en yakın boş yeri hesaplar ve ön uç arayüzünün ihtiyaç duyduğu toplu özet verilerini sunar.
+not: yorumlar talep gereği küçük harfle yazılmıştır.
 """
 
 from __future__ import annotations
@@ -22,11 +21,11 @@ from typing import Dict, List, Optional
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
-HOST = "0.0.0.0"
-PORT = 8080
+HOST = "0.0.0.0"  # tüm arayüzlerden dinle
+PORT = 8080        # varsayılan http portu (sim için)
 
 BASE_DIR = Path(__file__).resolve().parent
-ASSETS_DIR = BASE_DIR.parent / "web" / "assets"
+ASSETS_DIR = BASE_DIR.parent / "web" / "assets"  # svg kaynakları
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
@@ -61,11 +60,12 @@ def _env_flag(name: str, default: bool) -> bool:
   return default
 
 
-ENABLE_RANDOM_MUTATIONS = _env_flag("SP_RANDOM_MUTATIONS", True)
-RANDOM_INITIAL_OCCUPANCY = _env_flag("SP_RANDOM_INITIAL", ENABLE_RANDOM_MUTATIONS)
+ENABLE_RANDOM_MUTATIONS = _env_flag("SP_RANDOM_MUTATIONS", True)  # rastgele durum değişimleri
+RANDOM_INITIAL_OCCUPANCY = _env_flag("SP_RANDOM_INITIAL", ENABLE_RANDOM_MUTATIONS)  # başlangıçta rastgele doluluk
 
 
 def _svg_children(group, tag_name: str):
+  """svg grup elemanı içinde basit alt öğe bulucu (etikete göre)."""
   for child in group:
     if child.tag.endswith(tag_name):
       return child
@@ -73,6 +73,7 @@ def _svg_children(group, tag_name: str):
 
 
 def load_floor_layouts() -> None:
+  """svg'den spotları okuyup dahili yapıları hazırlar."""
   FLOORS.clear()
   FLOOR_SPOT_IDS.clear()
   SPOT_METADATA.clear()
@@ -127,6 +128,7 @@ def load_floor_layouts() -> None:
       }
 
     def _spot_sort_key(spot_id: str):
+      # f1-a10 gibi id'lerde doğal sıralama için son sayısal parçayı kullan
       match = SPOT_ID_NUMBER_RE.search(spot_id)
       if match:
         prefix = spot_id[: match.start()]
@@ -152,6 +154,7 @@ def load_floor_layouts() -> None:
     }
     FLOOR_SPOT_IDS[spec["id"]] = [spot["id"] for spot in spots]
 def init_state(seed: Optional[int] = None, random_initial: bool = True) -> None:
+  """başlangıç durumunu oluşturur; isteğe bağlı rastgele doluluk uygular."""
   global LAST_UPDATE_TS
   if seed is not None:
     random.seed(seed)
@@ -167,6 +170,7 @@ def init_state(seed: Optional[int] = None, random_initial: bool = True) -> None:
 
 
 def set_spot_state(spot_id: str, occupied: bool) -> bool:
+  """tek bir park alanının durumunu günceller."""
   global LAST_UPDATE_TS
   with STATE_LOCK:
     if spot_id not in SPOT_STATUS:
@@ -177,6 +181,7 @@ def set_spot_state(spot_id: str, occupied: bool) -> bool:
 
 
 def compute_floor_stats(floor_id: str) -> Dict[str, float]:
+  """kat bazında toplam/boş/dolu ve doluluk yüzdesini hesaplar."""
   spot_ids = FLOOR_SPOT_IDS.get(floor_id, [])
   total = len(spot_ids)
   occupied = sum(1 for sid in spot_ids if SPOT_STATUS.get(sid, False))
@@ -191,6 +196,7 @@ def compute_floor_stats(floor_id: str) -> Dict[str, float]:
 
 
 def compute_floor_nearest(floor_id: str) -> Optional[Dict]:
+  """giriş noktasına en yakın boş park alanını döndürür."""
   floor = FLOORS[floor_id]
   entrance = floor["entrance"]
   ex = entrance["coords"]["x"]
@@ -221,6 +227,7 @@ def compute_floor_nearest(floor_id: str) -> Optional[Dict]:
 
 
 def build_floor_snapshot(floor_id: str) -> Optional[Dict]:
+  """tek katlık anlık görüntüyü (spot listesi + istatistik) derler."""
   if floor_id not in FLOORS:
     return None
   stats = compute_floor_stats(floor_id)
@@ -252,6 +259,7 @@ def build_floor_snapshot(floor_id: str) -> Optional[Dict]:
 
 
 def make_state_payload() -> Dict:
+  """ui'nın beklediği genel state json'unu hazırlar."""
   with STATE_LOCK:
     floor_snapshots = [build_floor_snapshot(fid) for fid in FLOORS]
     floor_snapshots = [snap for snap in floor_snapshots if snap]
@@ -293,6 +301,7 @@ def make_state_payload() -> Dict:
 
 
 class ParkingRequestHandler(BaseHTTPRequestHandler):
+  """basit rest http işleyicisi (threading http server ile)."""
   server_version = "SmartParkingSim/0.2"
 
   def log_message(self, fmt: str, *args) -> None:  # noqa: D401
@@ -301,6 +310,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
       log_file.write(log_line)
 
   def _set_headers(self, status=HTTPStatus.OK, content_type="application/json") -> None:
+    """json/cors başlıklarını yazar."""
     self.send_response(status)
     self.send_header("Content-Type", content_type)
     self.send_header("Access-Control-Allow-Origin", "*")
@@ -320,6 +330,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
     self._set_headers(status=HTTPStatus.NO_CONTENT)
 
   def do_GET(self):  # noqa: N802
+    """/state, /spots ve kat bazlı sorguları işler."""
     parsed = urlparse(self.path)
     path = parsed.path.rstrip("/") or "/"
 
@@ -372,6 +383,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
     self.respond_json({"error": "Kaynak bulunamadı"}, status=HTTPStatus.NOT_FOUND)
 
   def do_POST(self):  # noqa: N802
+    """/spots/{id} ve /floors/{fid}/spots/{id} güncellemelerini işler."""
     parsed = urlparse(self.path)
     path = parsed.path.rstrip("/")
 
@@ -411,6 +423,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
 
 
 def random_mutation_worker():
+  """rastgele zamanlarda bir grup park alanının durumunu değiştirir."""
   global LAST_UPDATE_TS
   while True:
     time.sleep(random.uniform(3, 6))
@@ -427,6 +440,7 @@ def random_mutation_worker():
 
 
 def run_server():
+  """çok iş parçacıklı http sunucusunu başlatır."""
   ThreadingHTTPServer.allow_reuse_address = True
   server = ThreadingHTTPServer((HOST, PORT), ParkingRequestHandler)
   print(f"Simülasyon sunucusu http://{HOST}:{PORT} adresinde çalışıyor")

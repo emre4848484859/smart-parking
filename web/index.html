@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- bu sayfa tek katlı (10 alan) akıllı otopark panelinin arayüzünü içerir -->
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
@@ -8,10 +9,11 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- üst başlık: özet etiketleri ve başlık alanı -->
     <header class="app-header">
       <div>
         <h1>Akıllı Otopark Takip Paneli</h1>
-  <p class="subtitle">Canlı veri, tek katlı (10 alan) plan ve akıllı yönlendirme</p>
+  <p class="subtitle">canlı veri, tek katlı (10 alan) plan ve akıllı yönlendirme</p>
       </div>
       <div class="status-badges">
         <span class="badge" id="totalBadge">Toplam Alan: 0</span>
@@ -21,6 +23,7 @@
     </header>
 
     <main class="layout">
+      <!-- sol bölüm: kat planı svg ve sekmeler -->
       <section class="section section-floor">
         <div class="section-heading">
           <h2>Kat Planı</h2>
@@ -28,6 +31,7 @@
         </div>
         <div id="floorPanels" class="floor-panels"></div>
       </section>
+      <!-- sağ bölüm: öneri, kat özeti ve log konsolu -->
       <section class="section section-side">
         <h2>Önerilen Park Alanı</h2>
         <div id="recommended" class="recommendation">
@@ -55,7 +59,9 @@
     </footer>
 
     <script>
+      // bu betik, api'den (simülatör) alınan state'i svg üzerine uygular ve paneli günceller
       (function () {
+        // tek kat konfigürasyonu (id, etiket ve svg yolu)
         const floorsConfig = [
           { id: "F1", label: "Zemin Kat", svg: "assets/parking-10.svg" }
         ];
@@ -79,9 +85,11 @@
         let autoTimer = null;
         let autoRefreshEnabled = false;
 
-        const NGROK_BASE = "https://kenyetta-microdont-kathey.ngrok-free.dev";
+  // Ngrok kullanmıyorsanız boş bırakın; aşağıdaki resolveLocalApiBase() Codespaces 8080'i hedefler
+  const NGROK_BASE = ""; // ngrok kullanmıyorsanız boş bırakın
 
         function resolveLocalApiBase() {
+          // codespaces için 8080 portunu hedefleyen public base url üretir
           const { protocol, hostname, port } = window.location;
           if (hostname.endsWith(".app.github.dev")) {
             const match = hostname.match(/^(.*)-(\d+)\.app\.github\.dev$/);
@@ -96,9 +104,11 @@
           return `${protocol}//${hostname}:8080`;
         }
 
-        const API_BASE_CANDIDATES = [NGROK_BASE];
+        // api base adres adayları: önce ngrok (varsa), sonra yerel/codespaces 8080
+        const API_BASE_CANDIDATES = [NGROK_BASE, resolveLocalApiBase()].filter(Boolean);
 
         function appendLog(message, level = "info") {
+          // sağdaki log konsoluna zaman damgalı satır ekler
           const timestamp = new Date().toLocaleTimeString("tr-TR", { hour12: false });
           const entry = document.createElement("div");
           entry.className = `log-entry ${level}`;
@@ -120,6 +130,7 @@
         clearLogButton.addEventListener("click", clearLog);
 
         function buildUi() {
+          // sekmeleri, svg nesnelerini ve olay bağlayıcılarını oluşturur
           floorsConfig.forEach((floor, index) => {
             const button = document.createElement("button");
             button.type = "button";
@@ -145,6 +156,7 @@
             floorViews.set(floor.id, record);
 
             objectEl.addEventListener("load", () => {
+              // svg içerik belgesi yüklendiğinde kaydet ve bekleyen state varsa uygula
               record.doc = objectEl.contentDocument;
               appendLog(`${floor.label} kat planı yüklendi`);
               if (record.pendingState) {
@@ -200,6 +212,7 @@
         refreshButton.addEventListener("click", () => fetchState(true));
 
         function setActiveFloor(floorId) {
+          // aktif katı değiştirir ve görünümü günceller
           activeFloorId = floorId;
           const floorLabel = floorsConfig.find((f) => f.id === floorId)?.label ?? floorId;
           activeFloorLabel.textContent = floorLabel;
@@ -224,6 +237,7 @@
         }
 
         function applyFloorState(floorId, floorState) {
+          // tek kat svg içindeki spotları günceller ve en yakın boş olanı vurgular
           const view = floorViews.get(floorId);
           if (!view) {
             return;
@@ -257,6 +271,7 @@
         }
 
         function updateFloorSummary(floorStates) {
+          // sağdaki özet kartlarını günceller
           floorSummary.innerHTML = "";
           if (!Array.isArray(floorStates) || floorStates.length === 0) {
             const empty = document.createElement("p");
@@ -305,6 +320,7 @@
         }
 
         function updateRecommendation(recommendation) {
+          // önerilen park alanı kutusunu günceller
           recommendedElement.classList.remove("highlight");
           recommendedElement.innerHTML = "<p>Boş alan aranıyor...</p>";
 
@@ -335,6 +351,7 @@
         }
 
         function applyState(data) {
+          // api'den gelen genel state'i ui'ya uygular
           const overall = data.overall || {};
           totalBadge.textContent = `Toplam Alan: ${overall.total ?? 0}`;
           freeBadge.textContent = `Boş Alan: ${overall.free ?? 0}`;
@@ -351,6 +368,7 @@
         }
 
         async function fetchState(manual = false) {
+          // api'den /state verisini çeker, json'u parse eder ve ui'ya uygular
           let lastError = null;
           for (const base of API_BASE_CANDIDATES) {
             const apiUrl = `${base}/state`;
@@ -403,9 +421,9 @@
           }
         });
 
-        buildUi();
-        startAutoRefresh(true);
-        fetchState();
+        buildUi(); // temel arayüzü hazırla
+        startAutoRefresh(true); // otomatik yenilemeyi başlat
+        fetchState(); // ilk state çekimi
       })();
     </script>
   </body>

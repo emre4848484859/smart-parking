@@ -1,4 +1,7 @@
+/* bu dosya tek katlı akıllı otopark panelinin stillerini içerir */
+
 :root {
+  /* genel renk ve tipografi ayarları */
   color-scheme: only light;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   background-color: #eef2f8;
@@ -10,12 +13,14 @@
 }
 
 body {
+  /* sayfa arka planı ve yerleşim */
   margin: 0;
   min-height: 100vh;
   background: linear-gradient(180deg, #eef2f8 0%, #f8fafc 40%, #f1f5f9 100%);
 }
 
 .app-header {
+  /* üst başlık alanı */
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -76,6 +81,7 @@ body {
 }
 
 .layout {
+  /* iki sütunlu yerleşim: sol plan, sağ panel */
   display: grid;
   grid-template-columns: minmax(0, 2.25fr) minmax(0, 1fr);
   gap: 1.75rem;
@@ -84,6 +90,7 @@ body {
 }
 
 .section {
+  /* kart benzeri bölüm kutuları */
   background: #ffffff;
   border-radius: 22px;
   padding: 1.6rem;
@@ -138,6 +145,7 @@ body {
 }
 
 .floor-panels {
+  /* svg planının bulunduğu alan */
   position: relative;
   min-height: 560px;
   border-radius: 18px;
@@ -159,6 +167,7 @@ body {
 }
 
 .floor-svg {
+  /* svg görüntü ayarları */
   width: 100%;
   height: auto;
   max-height: 520px;
@@ -174,6 +183,7 @@ body {
 }
 
 .recommendation {
+  /* önerilen park alanı kutusu */
   border-radius: 18px;
   padding: 1.2rem;
   background: #eef2ff;
@@ -221,6 +231,7 @@ body {
 }
 
 .floor-summary-card {
+  /* kat özeti kartı */
   background: linear-gradient(135deg, #f8fafc 0%, #edf2ff 100%);
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 16px;
@@ -311,6 +322,7 @@ body {
 }
 
 .log-console {
+  /* sağdaki log konsolu */
   border-radius: 16px;
   background: #0f172a;
   color: #f8fafc;
@@ -363,6 +375,7 @@ body {
 }
 
 .app-footer {
+  /* alt bilgi ve eylem düğmeleri */
   display: flex;
   align-items: center;
   justify-content: space-between;
