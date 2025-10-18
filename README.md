@@ -18,7 +18,7 @@ veri akışı şu adımlarla ilerler:
 
 1. **wokwi simülasyonu:** `diagram.json` dosyasına göre çalışan sensörlerin mesafesi değiştirilir.
 2. **esp32 (`main.ino`):** `loop()` fonksiyonu periyodik olarak tüm sensörleri okur.
-3. **doluluk tespiti:** okunan mesafe, `OCCUPIED_THRESHOLD_CM` (örneğin 35 cm) ile karşılaştırılır. mesafe bu eşiğin altındaysa park yeri "dolu" kabul edilir.
+3. **doluluk tespiti:** okunan mesafe, `OCCUPIED_THRESHOLD_CM` (örneğin 30 cm) ile karşılaştırılır. mesafe bu eşiğin altındaysa park yeri "dolu" kabul edilir.
 4. **http post:** durum değiştiyse veya `RESEND_INTERVAL_MS` süresi dolduysa, esp32 `backend/app.py` sunucusunun `/spots/{spotId}` endpoint'ine `{"occupied": true}` gibi bir json verisi gönderir.
 5. **fastapi backend (`backend/app.py`):** gelen veriyi alır ve veritabanındaki (ör. `smart_parking.db`) ilgili park yerinin durumunu günceller.
 6. **web arayüzü (`web/index.html`):** her 5 saniyede bir backend'in `/state` endpoint'ine get isteği atarak tüm otoparkın son durumunu çeker.
@@ -175,7 +175,7 @@ proje `sqlalchemy` sayesinde hem sqlite hem de postgresql ile çalışabilir:
 
 ## katkı ve geliştirme notları
 
-- kodun tamamında küçük harfle türkçe yorumlar bulunur; bu düzeni korumanız okunabilirlik açısından faydalıdır.
+- kodun tamamında türkçe yorumlar bulunur okunabilirlik açısından faydalıdır.
 - saha testlerinde sensör eşikleri (`OCCUPIED_THRESHOLD_CM`, `SENSOR_SETTLE_DELAY_MS`) gerçek donanıma göre ayarlanmalıdır.
 - sorular, hata kayıtları veya yeni özellik önerileri için issue açabilirsiniz.
 
