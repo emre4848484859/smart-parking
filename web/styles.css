@@ -1,7 +1,12 @@
-/* bu dosya tek katlı akıllı otopark panelinin stillerini içerir */
+/* bu dosya tek katlı akıllı otopark panelinin stillerini içerir
 
+ */
+
+/* ---------------------- kök değişkenler ve genel ayar ---------------------- */
 :root {
-  /* genel renk ve tipografi ayarları */
+  /* genel renk paleti ve font ailesi tanımları. color-scheme only light
+   * sayesinde tarayıcı dark-mode geçişini engelleyerek tutarlı görünüm sağlar.
+   */
   color-scheme: only light;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   background-color: #eef2f8;
@@ -9,18 +14,22 @@
 }
 
 * {
+  /* tüm öğelerde box-sizing kuralını standartlaştır */
   box-sizing: border-box;
 }
 
 body {
-  /* sayfa arka planı ve yerleşim */
+  /* sayfa arka planı ve yerleşim: gradient arka plan ile modern görünüm */
   margin: 0;
   min-height: 100vh;
   background: linear-gradient(180deg, #eef2f8 0%, #f8fafc 40%, #f1f5f9 100%);
 }
 
+/* ---------------------- üst başlık (header) alanı ---------------------- */
 .app-header {
-  /* üst başlık alanı */
+  /* sayfanın en üstünde yer alan başlık çubuğu. koyu arka plan ve
+   * flex yerleşim ile başlık ve etiketlerin düzenli görünmesini sağlar.
+   */
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -49,7 +58,11 @@ body {
   flex-wrap: wrap;
 }
 
+/* ---------------------- etiket (badge) stilleri ---------------------- */
 .badge {
+  /* durum etiketleri: toplam, boş, dolu vs. inline-flex ile ikon ve
+   * metin yan yana; border-radius pill (999px) stili uygular.
+   */
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -63,25 +76,31 @@ body {
 }
 
 .badge-success {
+  /* yeşil ton: boş alanlar için olumlu gösterge */
   background: rgba(22, 163, 74, 0.2);
   border-color: rgba(22, 163, 74, 0.45);
   color: #dcfce7;
 }
 
 .badge-danger {
+  /* kırmızı ton: dolu alanlar için uyarı göstergesi */
   background: rgba(220, 38, 38, 0.2);
   border-color: rgba(220, 38, 38, 0.5);
   color: #fee2e2;
 }
 
 .badge-secondary {
+  /* ikincil gri ton: genel bilgi (zaman damgası gibi) */
   background: rgba(71, 85, 105, 0.35);
   border-color: rgba(148, 163, 184, 0.5);
   color: #e2e8f0;
 }
 
+/* ---------------------- ana yerleşim (layout) ---------------------- */
 .layout {
-  /* iki sütunlu yerleşim: sol plan, sağ panel */
+  /* grid layout: sol sütun (kat planı svg) ve sağ sütun (panel/summary).
+   * 2.25fr / 1fr oranı, sol tarafta daha çok alan bırakır.
+   */
   display: grid;
   grid-template-columns: minmax(0, 2.25fr) minmax(0, 1fr);
   gap: 1.75rem;
@@ -89,8 +108,11 @@ body {
   align-items: start;
 }
 
+/* ---------------------- bölüm (section) kartları ---------------------- */
 .section {
-  /* kart benzeri bölüm kutuları */
+  /* kart benzeri bölüm kutuları: beyaz arka plan, yumuşak gölgeler
+   * ve border-radius ile modern, ayrık blok görünümü
+   */
   background: #ffffff;
   border-radius: 22px;
   padding: 1.6rem;
@@ -114,7 +136,11 @@ body {
   gap: 1rem;
 }
 
+/* ---------------------- sekme (tab) çubuğu ---------------------- */
 .tab-bar {
+  /* kat sekmelerini içeren yuvarlak kapsayıcı. pill background
+   * ile modern tab görünümü; aktif sekme vurgulu.
+   */
   display: flex;
   gap: 0.6rem;
   background: #f8fafc;
@@ -124,6 +150,7 @@ body {
 }
 
 .tab-button {
+  /* tek bir sekme düğmesi. hover ve active durumları ayrı renklerde */
   border: none;
   background: transparent;
   color: #0f172a;
@@ -139,13 +166,18 @@ body {
 }
 
 .tab-button.active {
+  /* aktif sekme mavi gradient arka plan ve belirgin gölge alır */
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: #f8fafc;
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
 }
 
+/* ---------------------- kat planı paneli (svg alanı) ---------------------- */
 .floor-panels {
-  /* svg planının bulunduğu alan */
+  /* svg planının bulunduğu ana alan; gradient arka plan ve hafif
+   * bir border ile 'canvas' havası verir. relative konumlandırmayla
+   * aktif kat geçişleri yapılır.
+   */
   position: relative;
   min-height: 560px;
   border-radius: 18px;
@@ -155,6 +187,7 @@ body {
 }
 
 .floor-canvas {
+  /* tek bir katın paneli; display:none ile gizlenir, .active ile gösterilir */
   display: none;
   align-items: center;
   justify-content: center;
@@ -167,7 +200,9 @@ body {
 }
 
 .floor-svg {
-  /* svg görüntü ayarları */
+  /* svg görüntü ayarları: gölge ve inset highlight ile gömülü
+   * görünüm; responsive max-height ile taşmayı önler.
+   */
   width: 100%;
   height: auto;
   max-height: 520px;
@@ -176,14 +211,20 @@ body {
   background: #0f172a;
 }
 
+/* ---------------------- sağ panel ve öneri kutusu ---------------------- */
 .section-side {
+  /* sağ tarafta yer alan özet/panel; sticky ile sayfa kaydırılınca
+   * üstte sabit kalır (viewport'a göre konumu).
+   */
   position: sticky;
   top: 1.5rem;
   align-self: start;
 }
 
 .recommendation {
-  /* önerilen park alanı kutusu */
+  /* önerilen park alanı kutusu: kesikli border ile 'bilgi kartı' havası.
+   * highlight class'ı ile sarıya dönüşerek ilgi çeker.
+   */
   border-radius: 18px;
   padding: 1.2rem;
   background: #eef2ff;
@@ -202,6 +243,7 @@ body {
 }
 
 .recommendation.highlight {
+  /* öneri kartına highlight durumunda sarı arka plan; dikkat çekici */
   background: #fef3c7;
   border-color: rgba(250, 204, 21, 0.65);
 }
@@ -230,8 +272,11 @@ body {
   gap: 0.75rem;
 }
 
+/* ---------------------- kat özeti (summary) kartları ---------------------- */
 .floor-summary-card {
-  /* kat özeti kartı */
+  /* her kat için özet kartı: hover ile border rengini değiştirir,
+   * active olan kart sarı vurgu alır. gradient arka plan hafif derinlik verir.
+   */
   background: linear-gradient(135deg, #f8fafc 0%, #edf2ff 100%);
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 16px;
@@ -245,12 +290,14 @@ body {
 }
 
 .floor-summary-card:hover {
+  /* hover durumunda mavi ton border ve yukarı kayma efekti */
   border-color: rgba(37, 99, 235, 0.55);
   box-shadow: 0 14px 28px rgba(37, 99, 235, 0.12);
   transform: translateY(-2px);
 }
 
 .floor-summary-card.active {
+  /* aktif kat sarı border + gölge ile vurgulanır */
   border-color: rgba(250, 204, 21, 0.85);
   box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.22), 0 14px 32px rgba(250, 204, 21, 0.18);
 }
@@ -321,8 +368,11 @@ body {
   color: #1d4ed8;
 }
 
+/* ---------------------- log konsolu (diagnostik) ---------------------- */
 .log-console {
-  /* sağdaki log konsolu */
+  /* sağdaki log konsolu: koyu arka plan, monospace font ile terminal
+   * havası. scroll ile eski loglar görüntülenir. max-height ile taşma önlenir.
+   */
   border-radius: 16px;
   background: #0f172a;
   color: #f8fafc;
@@ -335,12 +385,16 @@ body {
 }
 
 .log-placeholder {
+  /* log konsolunda henüz kayıt yoksa gösterilen metin */
   color: rgba(241, 245, 249, 0.6);
   text-align: center;
   padding: 1.5rem 0;
 }
 
 .log-entry {
+  /* tek bir log satırı: sol kenarda renkli çizgi (border-left),
+   * info/error durumlarına göre renk değişir.
+   */
   padding: 0.35rem 0.45rem;
   border-left: 4px solid rgba(96, 165, 250, 0.75);
   background: rgba(15, 23, 42, 0.6);
@@ -349,6 +403,7 @@ body {
 }
 
 .log-entry.error {
+  /* hata logu: kırmızı border ve arka plan ile görsel uyarı */
   border-color: rgba(248, 113, 113, 0.9);
   background: rgba(248, 113, 113, 0.14);
 }
@@ -374,8 +429,11 @@ body {
   transform: translateY(-1px);
 }
 
+/* ---------------------- alt bilgi (footer) alanı ---------------------- */
 .app-footer {
-  /* alt bilgi ve eylem düğmeleri */
+  /* sayfanın en altında yer alan footer: koyu arka plan, flex ile
+   * bilgilendirici metin ve eylem düğmeleri yan yana yerleştirilir.
+   */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -422,6 +480,8 @@ body {
   font-size: 0.9rem;
 }
 
+/* ---------------------- responsive tasarım (media query) ---------------------- */
+/* 1200px altında: grid tek sütuna geçer, sticky panel normal konuma döner */
 @media (max-width: 1200px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
@@ -432,6 +492,7 @@ body {
   }
 }
 
+/* 720px altında (mobil): header ve footer dikey hizalanır, butonlar genişletilir */
 @media (max-width: 720px) {
   .app-header,
   .app-footer {

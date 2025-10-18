@@ -1,2 +1,5 @@
 simulator.log
-__pycache__/
+smart_parking.db
+*.log
+*.pyc
+**/__pycache__/

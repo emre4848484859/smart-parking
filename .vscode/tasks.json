@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Smart Parking backend (FastAPI)",
+      "type": "shell",
+      "command": "uvicorn backend.app:app --host 0.0.0.0 --port 8080 --reload",
+      "isBackground": true,
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

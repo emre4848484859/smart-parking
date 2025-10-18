@@ -59,7 +59,9 @@
     </footer>
 
     <script>
-      // bu betik, api'den (simülatör) alınan state'i svg üzerine uygular ve paneli günceller
+      // bu betik, api'den alınan state'i svg üzerine uygular ve arayüzü günceller
+      // tüm açıklamalar küçük harf türkçe şeklindedir ve fonksiyonların ne
+      // yaptığını kısa ve anlaşılır şekilde açıklar. kod davranışı değiştirilmedi.
       (function () {
         // tek kat konfigürasyonu (id, etiket ve svg yolu)
         const floorsConfig = [
@@ -89,7 +91,11 @@
   const NGROK_BASE = ""; // ngrok kullanmıyorsanız boş bırakın
 
         function resolveLocalApiBase() {
-          // codespaces için 8080 portunu hedefleyen public base url üretir
+          // resolveLocalApiBase(): tarayıcı ortamına göre backend'in base url'ini
+          // belirlemeye çalışır. codespaces veya yerel geliştirme senaryolarında
+          // 8080 portuna işaret eden adresi döndürür. ngrok gibi tünel hizmeti
+          // kullanmıyorsanız API_BASE_CANDIDATES dizisine kendi adresinizi ekleyin.
+          // geri dönen değer protokol ve host bilgisi içerir (örn. https://host:8080)
           const { protocol, hostname, port } = window.location;
           if (hostname.endsWith(".app.github.dev")) {
             const match = hostname.match(/^(.*)-(\d+)\.app\.github\.dev$/);
@@ -108,7 +114,9 @@
         const API_BASE_CANDIDATES = [NGROK_BASE, resolveLocalApiBase()].filter(Boolean);
 
         function appendLog(message, level = "info") {
-          // sağdaki log konsoluna zaman damgalı satır ekler
+          // appendLog(): sağ paneldeki log konsoluna zaman damgalı bir kayıt ekler.
+          // severity (level) 'info'|'error' gibi etiketler alabilir. en eski
+          // kayıtlar sınır aşıldığında atılır (120 kayıt ile sınırlı).
           const timestamp = new Date().toLocaleTimeString("tr-TR", { hour12: false });
           const entry = document.createElement("div");
           entry.className = `log-entry ${level}`;
@@ -124,13 +132,16 @@
         }
 
         function clearLog() {
+          // clearLog(): log konsolunu temizler ve yer tutucu mesaj yazar
           logConsole.innerHTML = '<div class="log-placeholder">Log temizlendi.</div>';
         }
 
         clearLogButton.addEventListener("click", clearLog);
 
         function buildUi() {
-          // sekmeleri, svg nesnelerini ve olay bağlayıcılarını oluşturur
+          // buildUi(): sayfa yüklendiğinde kat sekmelerini, svg <object>
+          // öğelerini oluşturur ve her svg için load/error event'lerini
+          // bağlar. svg yüklendiğinde applyFloorState ile bekleyen state uygular.
           floorsConfig.forEach((floor, index) => {
             const button = document.createElement("button");
             button.type = "button";
@@ -156,7 +167,9 @@
             floorViews.set(floor.id, record);
 
             objectEl.addEventListener("load", () => {
-              // svg içerik belgesi yüklendiğinde kaydet ve bekleyen state varsa uygula
+              // svg yüklendi: objectEl.contentDocument üzerinden svg DOM'una
+              // erişilir. burada doc referansı saklanır ve daha önce gelip uygulanan
+              // state varsa direkt svg üzerinde güncelleme yapılır.
               record.doc = objectEl.contentDocument;
               appendLog(`${floor.label} kat planı yüklendi`);
               if (record.pendingState) {
@@ -173,6 +186,7 @@
         }
 
         function clearAutoTimer() {
+          // clearAutoTimer(): varsa sürekli yenileme timer'ını iptal eder
           if (autoTimer) {
             clearInterval(autoTimer);
             autoTimer = null;
@@ -180,6 +194,9 @@
         }
 
         function startAutoRefresh(initial = false) {
+          // startAutoRefresh(): belirli aralıklarla (5s) /state isteği atar.
+          // initial:true parametresi UI başlarken çağırıldığını belirtir ve
+          // log mesajını önlemeye yarar.
           clearAutoTimer();
           autoRefreshEnabled = true;
           autoTimer = setInterval(fetchState, 5000);
@@ -191,6 +208,7 @@
         }
 
         function stopAutoRefresh(log = true) {
+          // stopAutoRefresh(): otomatik yenilemeyi durdurur ve buton etiketini günceller
           clearAutoTimer();
           autoRefreshEnabled = false;
           autoToggleButton.textContent = "Canlı Takibi Aç";
@@ -212,7 +230,8 @@
         refreshButton.addEventListener("click", () => fetchState(true));
 
         function setActiveFloor(floorId) {
-          // aktif katı değiştirir ve görünümü günceller
+          // setActiveFloor(): kullanıcı veya öneri butonuna tıklanınca aktif
+          // katı değiştirir. ilgili sekme ve panel 'active' sınıfını alır.
           activeFloorId = floorId;
           const floorLabel = floorsConfig.find((f) => f.id === floorId)?.label ?? floorId;
           activeFloorLabel.textContent = floorLabel;
@@ -237,7 +256,10 @@
         }
 
         function applyFloorState(floorId, floorState) {
-          // tek kat svg içindeki spotları günceller ve en yakın boş olanı vurgular
+          // applyFloorState(): bir katın snapshot nesnesini alır ve svg içindeki
+          // .parking-spot-svg sınıfı ile işaretlenmiş grup elemanlarının durumunu
+          // günceller (occupied/available/highlight). svg henüz yüklenmemişse
+          // kayıtlı pendingState'e atılır.
           const view = floorViews.get(floorId);
           if (!view) {
             return;
@@ -271,7 +293,8 @@
         }
 
         function updateFloorSummary(floorStates) {
-          // sağdaki özet kartlarını günceller
+          // updateFloorSummary(): sağ sütunda her kat için özet kartı oluşturur
+          // ve doluluk ilerleme barını günceller.
           floorSummary.innerHTML = "";
           if (!Array.isArray(floorStates) || floorStates.length === 0) {
             const empty = document.createElement("p");
@@ -320,7 +343,8 @@
         }
 
         function updateRecommendation(recommendation) {
-          // önerilen park alanı kutusunu günceller
+          // updateRecommendation(): backend'in önerisini kullanarak sağdaki
+          // öneri kutusunu doldurur ve 'bu kata odaklan' butonunu bağlar.
           recommendedElement.classList.remove("highlight");
           recommendedElement.innerHTML = "<p>Boş alan aranıyor...</p>";
 
@@ -351,7 +375,9 @@
         }
 
         function applyState(data) {
-          // api'den gelen genel state'i ui'ya uygular
+          // applyState(): /state endpointinden dönen payload'u alır,
+          // genel sayaçları (toplam/dolu/boş), kat snapshot'larını svg'lere
+          // uygular ve sağ paneldeki özet/öneri bölümlerini günceller.
           const overall = data.overall || {};
           totalBadge.textContent = `Toplam Alan: ${overall.total ?? 0}`;
           freeBadge.textContent = `Boş Alan: ${overall.free ?? 0}`;
@@ -368,7 +394,9 @@
         }
 
         async function fetchState(manual = false) {
-          // api'den /state verisini çeker, json'u parse eder ve ui'ya uygular
+          // fetchState(): api base adayları üzerinde deneme yaparak /state'i
+          // çeker. ilk çalışan base ile veriyi parse edip applyState çağırır.
+          // hata durumları loglanır ve sonraki aday denenir.
           let lastError = null;
           for (const base of API_BASE_CANDIDATES) {
             const apiUrl = `${base}/state`;
