@@ -87,7 +87,7 @@ uvicorn backend.app:app --host 0.0.0.0 --port 8080 --reload
 
 ### 2. web arayüzünün görüntülenmesi
 
-backend çalışır durumdayken, arayüz `http://localhost:8080/ui/` adresinden yayınlanır.
+backend çalışır durumdayken, arayüz `http://localhost:8080/ui/` adresinden yayınlanır. sayfanın alt kısmındaki **"simülasyonu yönet"** butonu, wokwi arayüzünü açılır pencere olarak aynı sayfada gösterir; artık tarayıcıda ayrı sekme açmanıza gerek yoktur.
 
 > **codespaces / vs code remote notu:** bulut ortamında çalışıyorsanız 8080 portunu "public" yapıp verilen genel url'yi kopyalayın. bu url'yi wokwi ile paylaşmanız gerekir.
 
@@ -97,7 +97,7 @@ backend çalışır durumdayken, arayüz `http://localhost:8080/ui/` adresinden 
 2. projedeki `diagram.json` içeriğini wokwi'deki `diagram.json` dosyasına aktarın.
 3. `main.ino` içeriğini wokwi'deki `sketch.ino` dosyasına aktarın.
 4. `BACKEND_BASE` değişkenini kendi genel backend url'inizle güncelleyin.
-5. wokwi simülasyonunu başlatın.
+5. paneldeki **"simülasyonu yönet"** düğmesine basarak açılan modülden wokwi'yi aynı sayfada kullanabilir veya isterseniz doğrudan wokwi sekmesinde simülasyonu başlatabilirsiniz.
 
 ---
 
