@@ -1,8 +1,6 @@
 // bu dosya esp32 tabanlı akıllı otopark düğümünün ana firmware kodunu içerir
 // amaç: hcsr04 ultrasonik sensörlerden mesafe ölçümü alıp her bir park
 // alanının doluluk durumunu belirlemek ve backend'e bildirim göndermektir.
-//
-// açıklamalar: tüm yorumlar küçük harf türkçe olarak yazılmıştır. bu
 // açıklamalar kodun hangi bölümde ne yaptığını adım adım anlatır ve
 // sahada bakım/inceleme yapan kişilerin anlamasını kolaylaştırır.
 
@@ -54,21 +52,22 @@ struct ParkingSensor {
   uint8_t echoPin;              // echo pini (pulseIn okumaları için)
   bool occupied;                // anlık doluluk durumu
   unsigned long lastPublishMillis; // son başarılı publish zamanı (ms)
+  unsigned long lastReadMillis;    // son ölçüm zamanı (ms)
 };
 
 // sensör dizisi: burada her öğe fiziksel bağlantıya göre ayarlanmıştır
 // not: id alanı backend'deki spot id'leriyle aynı olmalıdır
 ParkingSensor sensors[] = {
-  {"F1-A1",  1, 34, false, 0},   // sr2:Q1 (ultrasonic1)
-  {"F1-A2",  0, 35, false, 0},   // sr2:Q0 (ultrasonic2)
-  {"F1-A3",  8, 32, false, 0},   // sr1:Q0 (ultrasonic3)
-  {"F1-A4",  6, 33, false, 0},   // sr2:Q6 (ultrasonic4)
-  {"F1-A5",  5, 25, false, 0},   // sr2:Q5 (ultrasonic5)
-  {"F1-A6",  4, 26, false, 0},   // sr2:Q4 (ultrasonic6)
-  {"F1-A7",  9, 27, false, 0},   // sr1:Q1 (ultrasonic7)
-  {"F1-A8",  3, 14, false, 0},   // sr2:Q3 (ultrasonic8)
-  {"F1-A9",  7, 12, false, 0},   // sr2:Q7 (ultrasonic9)
-  {"F1-A10", 2, 13, false, 0}    // sr2:Q2 (ultrasonic10)
+  {"F1-A1",  1, 34, false, 0, 0},   // sr2:Q1 (ultrasonic1)
+  {"F1-A2",  0, 35, false, 0, 0},   // sr2:Q0 (ultrasonic2)
+  {"F1-A3",  8, 32, false, 0, 0},   // sr1:Q0 (ultrasonic3)
+  {"F1-A4",  6, 33, false, 0, 0},   // sr2:Q6 (ultrasonic4)
+  {"F1-A5",  5, 25, false, 0, 0},   // sr2:Q5 (ultrasonic5)
+  {"F1-A6",  4, 26, false, 0, 0},   // sr2:Q4 (ultrasonic6)
+  {"F1-A7",  9, 27, false, 0, 0},   // sr1:Q1 (ultrasonic7)
+  {"F1-A8",  3, 14, false, 0, 0},   // sr2:Q3 (ultrasonic8)
+  {"F1-A9",  7, 12, false, 0, 0},   // sr2:Q7 (ultrasonic9)
+  {"F1-A10", 2, 13, false, 0, 0}    // sr2:Q2 (ultrasonic10)
 };
 
 const size_t SENSOR_COUNT = sizeof(sensors) / sizeof(sensors[0]);
@@ -81,12 +80,18 @@ const size_t SENSOR_COUNT = sizeof(sensors) / sizeof(sensors[0]);
 // kabul edilir. sahadaki montaj yüksekliğine ve araç tiplerine göre ayarlayın.
 const float OCCUPIED_THRESHOLD_CM = 35.0f;
 
-// sensör okuma döngüsü aralığı (ms)
-const uint16_t MEASUREMENT_INTERVAL_MS = 1500;
+// her sensör için minimum ölçüm aralığı (ms). daha hızlı tepki için düşürebilirsiniz.
+const uint16_t MEASUREMENT_INTERVAL_MS = 200;
 
 // aynı durum için belirli aralıklarla yeniden gönderim yapılır (ms).
 // örneğin network geçici olarak düşse bile belli aralıkta tekrar gönderilir.
 const uint32_t RESEND_INTERVAL_MS = 12000;
+
+// ardışık sensör tetiklemeleri arasında kısa bekleme (ms), crosstalk azaltır
+const uint16_t SENSOR_SETTLE_DELAY_MS = 20;
+
+// hiçbir sensör ölçüm zamanı gelmediyse döngüde yapılacak kısa bekleme (ms)
+const uint8_t LOOP_IDLE_DELAY_MS = 1;
 
 
 // =======================================================================
@@ -252,13 +257,23 @@ void loop() {
   // wi-fi bağlantısını her döngüde kontrol et, kopma varsa yeniden bağlanmayı dene
   connectWifi();
 
+  bool measurementDone = false;
+
   for (size_t i = 0; i < SENSOR_COUNT; i++) {
     ParkingSensor &sensor = sensors[i];
-    
+
+    unsigned long now = millis();
+    bool measurementTooEarly = (sensor.lastReadMillis != 0) && ((now - sensor.lastReadMillis) < MEASUREMENT_INTERVAL_MS);
+    if (measurementTooEarly) {
+      continue; // bu sensörün ölçüm süresi henüz gelmediyse atla
+    }
+
     float distance = readDistanceCm(sensor); // sensörden mesafe ölçümü al
+    unsigned long afterRead = millis();
+    sensor.lastReadMillis = afterRead; // bir sonraki ölçüm için zaman damgası
+
     bool detected = (distance > 0 && distance <= OCCUPIED_THRESHOLD_CM); // eşik altı dolu kabul
     bool stateChanged = (sensor.occupied != detected); // önceki durumla karşılaştır
-    
     sensor.occupied = detected;
 
     // seri çıktı ile durumları gözlemlenebilir yap
@@ -274,20 +289,23 @@ void loop() {
     Serial.print(" -> durum: ");
     Serial.println(detected ? "dolu" : "bos");
 
-    unsigned long now = millis();
-    bool resendDue = (now - sensor.lastPublishMillis) >= RESEND_INTERVAL_MS;
+    bool resendDue = (sensor.lastPublishMillis == 0) || ((afterRead - sensor.lastPublishMillis) >= RESEND_INTERVAL_MS);
 
     // durum değiştiyse veya belirli bir süre geçtiyse sunucuya veri gönder
     if (stateChanged || resendDue) {
       if (sendSpotStatus(sensor)) {
         // yalnızca başarılı gönderimde zaman damgasını güncelle
-        sensor.lastPublishMillis = now;
+        sensor.lastPublishMillis = afterRead;
       }
     }
 
-    delay(100); // sensör okumaları arasında kısa bir bekleme
+    delay(SENSOR_SETTLE_DELAY_MS); // ultrasonik sensörler arasında kısa bekleme
+    measurementDone = true;
   }
 
-  Serial.println("----------------------------------------------");
-  delay(MEASUREMENT_INTERVAL_MS);
+  if (!measurementDone) {
+    delay(LOOP_IDLE_DELAY_MS); // yoğun iş yoksa cpu'yu rahatlat
+  } else {
+    Serial.println("----------------------------------------------");
+  }
 }

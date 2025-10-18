@@ -12,7 +12,6 @@ env değişkenleri:
 - sp_floor_id: tek kat kimliği (varsayılan: f1)
 - sp_floor_label: kat etiketi (varsayılan: zemin kat)
 
-not: dosyaya eklenen tüm yorumlar küçük harf türkçe şeklindedir.
 """
 
 from __future__ import annotations
