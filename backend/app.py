@@ -16,16 +16,18 @@ env değişkenleri:
 
 from __future__ import annotations
 
-import json
 import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from fastapi import FastAPI, HTTPException, Request
+import asyncio
+import json
+
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import (
@@ -51,8 +53,11 @@ DB_URL = os.getenv("SP_DATABASE_URL", DEFAULT_DB_URL)
 SVG_PATH = Path(os.getenv("SP_ASSETS_SVG", str(BASE_DIR / "web" / "assets" / "parking-10.svg")))
 FLOOR_ID = os.getenv("SP_FLOOR_ID", "F1")
 FLOOR_LABEL = os.getenv("SP_FLOOR_LABEL", "Zemin Kat")
+DEVICE_TOKENS = {token.strip() for token in os.getenv("SP_DEVICE_TOKENS", "").split(",") if token.strip()}
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
+STATE_SUBSCRIBERS: set[asyncio.Queue[str]] = set()
+HEARTBEAT_INTERVAL = 30.0
 
 
 # ------------------------- veritabanı ----------------------------
@@ -303,6 +308,35 @@ def build_state_payload(db: Session) -> Dict:
     }
 
 
+async def _build_state_snapshot_json() -> str:
+    def _build() -> Dict:
+        with SessionLocal() as db:
+            return build_state_payload(db)
+
+    snapshot = await asyncio.to_thread(_build)
+    return json.dumps(snapshot)
+
+
+async def broadcast_state() -> None:
+    if not STATE_SUBSCRIBERS:
+        return
+
+    payload = await _build_state_snapshot_json()
+    dead: List[asyncio.Queue[str]] = []
+    for queue in list(STATE_SUBSCRIBERS):
+        try:
+            while queue.full():
+                queue.get_nowait()
+            await queue.put(payload)
+        except asyncio.QueueEmpty:
+            # queue boşaltılırken başka task almış olabilir, yok say
+            continue
+        except RuntimeError:
+            dead.append(queue)
+    for queue in dead:
+        STATE_SUBSCRIBERS.discard(queue)
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     # uygulama başlarken veritabanını hazırla ve svg'den seed verisi yükle
@@ -321,6 +355,26 @@ def get_state():
         return build_state_payload(db)
 
 
+@app.get("/events")
+async def stream_events():
+    async def event_generator():
+        queue: asyncio.Queue[str] = asyncio.Queue(maxsize=5)
+        STATE_SUBSCRIBERS.add(queue)
+        try:
+            initial_payload = await _build_state_snapshot_json()
+            yield f"data: {initial_payload}\n\n"
+            while True:
+                try:
+                    payload = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_INTERVAL)
+                    yield f"data: {payload}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keep-alive\n\n"
+        finally:
+            STATE_SUBSCRIBERS.discard(queue)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @app.get("/spots")
 def list_spots():
     # tüm spotların düz liste halinde durumunu döner
@@ -333,30 +387,28 @@ def list_spots():
 
 
 @app.post("/spots/{spot_id}")
-async def update_spot_async(spot_id: str, request: Request):
-    try:
-        raw = await request.body()
-        payload = json.loads(raw.decode("utf-8")) if raw else {}
-    except Exception:
-        raise HTTPException(status_code=400, detail="Geçersiz JSON")
-
-    occupied = payload.get("occupied")
-    if isinstance(occupied, str):
-        occupied = occupied.strip().lower() in {"1", "true", "yes", "on"}
-    if not isinstance(occupied, bool):
-        raise HTTPException(status_code=400, detail="occupied alanı zorunlu")
-
+async def update_spot(spot_id: str, update: SpotUpdate, device_key: Optional[str] = Header(default=None, alias="X-Device-Key")):
     # bir spotun doluluk bilgisini günceller. esp32 firmware her durum
     # değişikliğinde veya periyodik resend sırasında bu endpoint'e post atar.
-    with SessionLocal() as db:
-        spot = db.get(Spot, spot_id)
-        if spot is None:
-            raise HTTPException(status_code=404, detail="Bilinmeyen park alanı")
-        spot.occupied = bool(occupied)
-        spot.updated_at = datetime.now(timezone.utc)
-        db.add(spot)
-        db.commit()
-    return {"result": "OK", "spotId": spot_id, "occupied": bool(occupied)}
+    if DEVICE_TOKENS and (device_key not in DEVICE_TOKENS):
+        raise HTTPException(status_code=401, detail="Yetkisiz cihaz anahtarı")
+
+    normalized_id = spot_id.upper()
+
+    def _persist() -> Dict[str, object]:
+        with SessionLocal() as db:
+            spot = db.get(Spot, normalized_id)
+            if spot is None:
+                raise HTTPException(status_code=404, detail="Bilinmeyen park alanı")
+            spot.occupied = bool(update.occupied)
+            spot.updated_at = datetime.now(timezone.utc)
+            db.add(spot)
+            db.commit()
+        return {"result": "OK", "spotId": normalized_id, "occupied": bool(update.occupied)}
+
+    result = await asyncio.to_thread(_persist)
+    await broadcast_state()
+    return result
 
 
 @app.get("/floors/{floor_id}")
