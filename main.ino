@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <cstring>
 
 /*
  * genel mimari:
@@ -33,6 +34,10 @@ const char *WIFI_PASSWORD = "";
 // yolu ile yapılır. base url içine fazladan path koymayın (ör. "$0")
 // çünkü path çiftleşmeleri 400 hatalarına sebep olabilir.
 const char *BACKEND_BASE = "https://obscure-halibut-pj59wxv6rggvf67pq-8080.app.github.dev";
+
+// backend tarafından beklenen cihaz API anahtarı. Backend'de SP_DEVICE_TOKENS
+// ile aynı değeri paylaşmalıdır.
+const char *DEVICE_API_KEY = "demo-device-key";
 
 // HTTPS çağrıları için paylaşılan istemci (sertifika doğrulaması devre dışı)
 WiFiClientSecure secureClient;
@@ -189,6 +194,9 @@ bool sendSpotStatus(ParkingSensor &sensor) {
     return false;
   }
   http.addHeader("Content-Type", "application/json");
+  if (DEVICE_API_KEY && strlen(DEVICE_API_KEY) > 0) {
+    http.addHeader("X-Device-Key", DEVICE_API_KEY);
+  }
   // ngrok geliştirici araçlarında tarayıcı uyarısını atlamak için header
   http.addHeader("ngrok-skip-browser-warning", "true");
   // bağlantıyı kısa tutmak için connection: close

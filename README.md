@@ -6,7 +6,7 @@ proje üç ana bileşenden oluşur:
 
 1. **donanım (esp32 firmware):** `main.ino` dosyası, 10 adet ultrasonik sensörden (hc-sr04) veri okur ve doluluk durumunu http post isteği ile backend'e bildirir.
 2. **backend (fastapi sunucusu):** `backend/app.py` dosyası, esp32'den gelen verileri alır, bir veritabanına (sqlite veya postgresql) kaydeder ve web arayüzünün ihtiyaç duyduğu verileri `/state` endpoint'i üzerinden json formatında sunar.
-3. **frontend (web arayüzü):** `web/` klasöründeki dosyalar, backend'den aldığı verileri kullanarak otopark planı üzerinde (bir svg dosyası aracılığıyla) hangi park yerinin dolu veya boş olduğunu canlı olarak gösterir ve en yakın boş yeri önerir.
+3. **frontend (web arayüzü):** `web/` klasöründeki dosyalar, backend'deki `/events` SSE akışına bağlanarak (destek yoksa 5 saniyelik polling'e düşer) SVG plan üzerinde hangi park yerinin dolu veya boş olduğunu canlı gösterir ve en yakın boş yeri önerir.
 
 
 
@@ -81,7 +81,10 @@ diğer `start.sh` komutları:
 # 1. gerekli python kütüphanelerini yükleyin
 pip3 install -r requirements.txt
 
-# 2. uvicorn sunucusunu başlatın
+# 2. cihaz API anahtarlarınızı tanımlayın (isteğe bağlı fakat üretimde zorunlu)
+export SP_DEVICE_TOKENS="demo-device-key,ikinci-cihaz-anahtari"
+
+# 3. uvicorn sunucusunu başlatın
 uvicorn backend.app:app --host 0.0.0.0 --port 8080 --reload
 ```
 
@@ -97,7 +100,8 @@ backend çalışır durumdayken, arayüz `http://localhost:8080/ui/` adresinden 
 2. projedeki `diagram.json` içeriğini wokwi'deki `diagram.json` dosyasına aktarın.
 3. `main.ino` içeriğini wokwi'deki `sketch.ino` dosyasına aktarın.
 4. `BACKEND_BASE` değişkenini kendi genel backend url'inizle güncelleyin.
-5. paneldeki **"simülasyonu yönet"** düğmesine basarak açılan modülden wokwi'yi aynı sayfada kullanabilir veya isterseniz doğrudan wokwi sekmesinde simülasyonu başlatabilirsiniz.
+5. Backend'de tanımladığınız `SP_DEVICE_TOKENS` değerlerinden birini `DEVICE_API_KEY` sabitine yazın. Bu değer HTTP isteğinde `X-Device-Key` başlığı olarak gönderilir.
+6. paneldeki **"simülasyonu yönet"** düğmesine basarak açılan modülden wokwi'yi aynı sayfada kullanabilir veya isterseniz doğrudan wokwi sekmesinde simülasyonu başlatabilirsiniz.
 
 ---
 
@@ -129,6 +133,7 @@ backend aşağıdaki temel endpoint'leri sağlar:
 	```json
 	{ "occupied": true }
 	```
+- **kimlik doğrulama:** sunucu `SP_DEVICE_TOKENS` tanımlıysa `X-Device-Key` başlığında eşleşen bir anahtar bekler.
 - **yanıt (200 ok):**
 
 	```json
@@ -161,6 +166,11 @@ backend aşağıdaki temel endpoint'leri sağlar:
 	```json
 	{ "status": "ok", "db": "sqlite" }
 	```
+
+### `GET /events`
+
+- **amaç:** Server-Sent Events (SSE) ile `/state` çıktısının gerçek zamanlı akışını sağlar.
+- **yanıt:** `text/event-stream` formatında `data: {...json...}` satırları gönderir; istemci keep-alive için 30 saniyede bir `: keep-alive` mesajı alır.
 
 ---
 

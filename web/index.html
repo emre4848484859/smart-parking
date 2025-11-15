@@ -88,10 +88,14 @@
         const autoToggleButton = document.getElementById("autoToggleButton");
         const activeFloorLabel = document.getElementById("activeFloorLabel");
 
-        const floorViews = new Map();
-        let activeFloorId = floorsConfig[0]?.id ?? "F1";
-        let autoTimer = null;
-        let autoRefreshEnabled = false;
+          const floorViews = new Map();
+          let activeFloorId = floorsConfig[0]?.id ?? "F1";
+          let autoTimer = null;
+          let autoRefreshEnabled = false;
+          const supportsEventSource = typeof window.EventSource !== "undefined";
+          let eventSource = null;
+          let streamReconnectTimer = null;
+          let streamReady = false;
 
   // Ngrok kullanmıyorsanız boş bırakın; aşağıdaki resolveLocalApiBase() Codespaces 8080'i hedefler
   const NGROK_BASE = ""; // ngrok kullanmıyorsanız boş bırakın
@@ -223,6 +227,102 @@
             appendLog("Canlı takip kapatıldı");
           }
         }
+
+          function closeEventStream(log = false) {
+            if (streamReconnectTimer) {
+              clearTimeout(streamReconnectTimer);
+              streamReconnectTimer = null;
+            }
+            if (eventSource) {
+              eventSource.close();
+              eventSource = null;
+              streamReady = false;
+              if (log) {
+                appendLog("SSE bağlantısı kapatıldı");
+              }
+            }
+          }
+
+          function connectEventStream(candidateIndex = 0, retry = false) {
+            if (!supportsEventSource || API_BASE_CANDIDATES.length === 0) {
+              if (!autoRefreshEnabled) {
+                appendLog("SSE desteklenmiyor, otomatik yenileme kullanılacak");
+                startAutoRefresh(true);
+              }
+              return;
+            }
+            if (candidateIndex >= API_BASE_CANDIDATES.length) {
+              appendLog("SSE kaynağı bulunamadı, otomatik yenileme moduna dönülüyor", "error");
+              closeEventStream();
+              if (!autoRefreshEnabled) {
+                startAutoRefresh();
+              }
+              return;
+            }
+
+            closeEventStream();
+            const base = API_BASE_CANDIDATES[candidateIndex];
+            const url = `${base}/events`;
+            appendLog(`SSE bağlantısı ${retry ? "yeniden " : ""}deneniyor: ${url}`);
+
+            try {
+              const es = new EventSource(url);
+              eventSource = es;
+              let opened = false;
+
+              es.onopen = () => {
+                opened = true;
+                streamReady = true;
+                appendLog("SSE bağlantısı kuruldu, gerçek zamanlı güncellemeler aktif");
+                stopAutoRefresh(false);
+              };
+
+              es.onmessage = (event) => {
+                if (!event.data) {
+                  return;
+                }
+                try {
+                  const payload = JSON.parse(event.data);
+                  applyState(payload);
+                } catch (error) {
+                  appendLog("SSE JSON parse hatası", "error");
+                  console.error("SSE JSON parse hatası", error, event.data);
+                }
+              };
+
+              es.onerror = () => {
+                streamReady = false;
+                es.close();
+                if (!opened) {
+                  appendLog("SSE bağlantısı başarısız oldu, sonraki aday deneniyor", "error");
+                  connectEventStream(candidateIndex + 1, true);
+                } else {
+                  appendLog("SSE bağlantısı koptu, 3 sn sonra yeniden denenecek", "error");
+                  if (!autoRefreshEnabled) {
+                    startAutoRefresh();
+                  }
+                  streamReconnectTimer = window.setTimeout(() => connectEventStream(candidateIndex, true), 3000);
+                }
+              };
+            } catch (error) {
+              appendLog("SSE başlatılamadı", "error");
+              console.error("EventSource başlatma hatası", error);
+              connectEventStream(candidateIndex + 1, true);
+            }
+          }
+
+          function ensureRealtimeConnection() {
+            if (!supportsEventSource || API_BASE_CANDIDATES.length === 0) {
+              if (!autoRefreshEnabled) {
+                startAutoRefresh(true);
+              }
+              return;
+            }
+            if (eventSource) {
+              return;
+            }
+            connectEventStream(0);
+          }
 
         autoToggleButton.addEventListener("click", () => {
           if (autoRefreshEnabled) {
@@ -446,14 +546,18 @@
           }
         }
 
-        document.addEventListener("visibilitychange", () => {
-          if (document.hidden) {
-            clearAutoTimer();
-          } else if (autoRefreshEnabled) {
-            startAutoRefresh();
-            fetchState();
-          }
-        });
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+              clearAutoTimer();
+              closeEventStream();
+            } else {
+              if (autoRefreshEnabled) {
+                startAutoRefresh(true);
+                fetchState();
+              }
+              ensureRealtimeConnection();
+            }
+          });
 
         // --- YENİ: Wokwi Modülü Kontrol Kodu ---
         
@@ -498,10 +602,10 @@
         // --- Wokwi Modülü Kontrol Kodu Sonu ---
 
 
-        buildUi(); // temel arayüzü hazırla
-        setupWokwiModal(); // YENİ: Wokwi modül butonlarını bağla
-        startAutoRefresh(true); // otomatik yenilemeyi başlat
-        fetchState(); // ilk state çekimi
+          buildUi(); // temel arayüzü hazırla
+          setupWokwiModal(); // YENİ: Wokwi modül butonlarını bağla
+          fetchState(); // ilk state çekimi
+          ensureRealtimeConnection(); // SSE varsa bağlan, yoksa otomatik yenileme başlat
       })();
     </script>
     </body>
