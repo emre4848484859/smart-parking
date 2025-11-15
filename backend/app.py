@@ -16,14 +16,13 @@ env değişkenleri:
 
 from __future__ import annotations
 
-import json
 import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -333,30 +332,19 @@ def list_spots():
 
 
 @app.post("/spots/{spot_id}")
-async def update_spot_async(spot_id: str, request: Request):
-    try:
-        raw = await request.body()
-        payload = json.loads(raw.decode("utf-8")) if raw else {}
-    except Exception:
-        raise HTTPException(status_code=400, detail="Geçersiz JSON")
-
-    occupied = payload.get("occupied")
-    if isinstance(occupied, str):
-        occupied = occupied.strip().lower() in {"1", "true", "yes", "on"}
-    if not isinstance(occupied, bool):
-        raise HTTPException(status_code=400, detail="occupied alanı zorunlu")
-
+def update_spot(spot_id: str, update: SpotUpdate):
     # bir spotun doluluk bilgisini günceller. esp32 firmware her durum
     # değişikliğinde veya periyodik resend sırasında bu endpoint'e post atar.
+    normalized_id = spot_id.upper()
     with SessionLocal() as db:
-        spot = db.get(Spot, spot_id)
+        spot = db.get(Spot, normalized_id)
         if spot is None:
             raise HTTPException(status_code=404, detail="Bilinmeyen park alanı")
-        spot.occupied = bool(occupied)
+        spot.occupied = bool(update.occupied)
         spot.updated_at = datetime.now(timezone.utc)
         db.add(spot)
         db.commit()
-    return {"result": "OK", "spotId": spot_id, "occupied": bool(occupied)}
+    return {"result": "OK", "spotId": normalized_id, "occupied": bool(update.occupied)}
 
 
 @app.get("/floors/{floor_id}")
